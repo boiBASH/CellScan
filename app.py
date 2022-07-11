@@ -19,18 +19,12 @@ from gevent.wsgi import WSGIServer
 app = Flask(__name__)
 
 # Model saved with Keras model.save()
-MODEL_PATH = 'models/my_model.h5'
+MODEL_PATH = 'models/Malaria_cell_classifation.h5'
 
 #Load your trained model
 model = load_model(MODEL_PATH)
-model._make_predict_function()          # Necessary to make everything ready to run on the GPU ahead of time
+model._make_predict_function()      
 print('Model loaded. Start serving...')
-
-# You can also use pretrained model from Keras
-# Check https://keras.io/applications/
-#from keras.applications.resnet50 import ResNet50
-#model = ResNet50(weights='imagenet')
-#print('Model loaded. Check http://127.0.0.1:5000/')
 
 
 def model_predict(img_path, model):
@@ -68,9 +62,8 @@ def upload():
         pred = model_predict(file_path, model)
         os.remove(file_path)#removes file from the server after prediction has been returned
 
-        # Arrange the correct return according to the model. 
-		# In this model 1 is Pneumonia and 0 is Normal.
-        str1 = 'Malaria Parasitized'
+        
+        str1 = 'Malaria Parasite Present'
         str2 = 'Normal'
         if pred[0] == 0:
             return str1
