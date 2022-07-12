@@ -4,9 +4,9 @@ import os
 import glob
 import re
 import numpy as np
-import pipreqs
 
-print(pipreqs)
+
+
 # Keras
 from tensorflow.keras.applications.imagenet_utils import preprocess_input, decode_predictions
 from tensorflow.keras.models import load_model
@@ -14,6 +14,7 @@ from tensorflow.keras.preprocessing import image
 import tensorflow as tf
 
 # Flask utils
+import flask
 from flask import Flask, redirect, url_for, request, render_template
 from werkzeug.utils import secure_filename
 #from gevent.wsgi import WSGIServer
