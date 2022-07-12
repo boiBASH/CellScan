@@ -4,16 +4,19 @@ import os
 import glob
 import re
 import numpy as np
+import pipreqs
 
+print(pipreqs)
 # Keras
-from keras.applications.imagenet_utils import preprocess_input, decode_predictions
-from keras.models import load_model
-from keras.preprocessing import image
+from tensorflow.keras.applications.imagenet_utils import preprocess_input, decode_predictions
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+import tensorflow as tf
 
 # Flask utils
 from flask import Flask, redirect, url_for, request, render_template
 from werkzeug.utils import secure_filename
-from gevent.wsgi import WSGIServer
+#from gevent.wsgi import WSGIServer
 
 # Define a flask app
 app = Flask(__name__)
@@ -22,13 +25,13 @@ app = Flask(__name__)
 MODEL_PATH = 'models/Malaria_cell_classifation.h5'
 
 #Load your trained model
-model = load_model(MODEL_PATH)
+model = tf.keras.models.load_model(MODEL_PATH)
 model._make_predict_function()      
 print('Model loaded. Start serving...')
 
 
 def model_predict(img_path, model):
-    img = image.load_img(img_path, target_size=(50,50)) #target_size must agree with what the trained model expects!!
+    img = image.load_img("uploads/C101P62ThinF_IMG_20150918_151507_cell_63.png", target_size=(50,50)) #target_size must agree with what the trained model expects!!
 
     # Preprocessing the image
     img = image.img_to_array(img)
@@ -73,8 +76,9 @@ def upload():
 
     #this section is used by gunicorn to serve the app on Heroku
 if __name__ == '__main__':
+
         app.run()
     #uncomment this section to serve the app locally with gevent at:  http://localhost:5000
     # Serve the app with gevent 
-    #http_server = WSGIServer(('', 5000), app)
-    #http_server.serve_forever()
+        #http_server = WSGIServer(('', 5000), app)
+        #http_server.serve_forever()
