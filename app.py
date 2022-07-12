@@ -1,15 +1,22 @@
-﻿from __future__ import division, print_function
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul 12 18:27:16 2022
+
+@author: mac
+"""
 import sys
 import os
 import glob
 import re
 import numpy as np
-
-
+from PIL import Image
+import io
 
 # Keras
 from tensorflow.keras.applications.imagenet_utils import preprocess_input, decode_predictions
 from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.preprocessing import image
 import tensorflow as tf
 
@@ -17,69 +24,65 @@ import tensorflow as tf
 import flask
 from flask import Flask, redirect, url_for, request, render_template
 from werkzeug.utils import secure_filename
-#from gevent.wsgi import WSGIServer
 
-# Define a flask app
-app = Flask(__name__)
+# initialize our Flask application and the Keras model
+app = flask.Flask(__name__)
 
-# Model saved with Keras model.save()
+
 MODEL_PATH = 'models/Malaria_cell_classifation.h5'
 
 #Load your trained model
 model = tf.keras.models.load_model(MODEL_PATH)
-model._make_predict_function()      
+      
 print('Model loaded. Start serving...')
 
-
-def model_predict(img_path, model):
-    img = image.load_img("uploads/C101P62ThinF_IMG_20150918_151507_cell_63.png", target_size=(50,50)) #target_size must agree with what the trained model expects!!
-
-    # Preprocessing the image
-    img = image.img_to_array(img)
-    img = np.expand_dims(img, axis=0)
-
-   
-    preds = model.predict(img)
-    pred = np.argmax(preds,axis = 1)
-    return pred
+def prepare_image(image, target):
+	# resize the input image and preprocess it
+	image = image.resize(target)
+	image = img_to_array(image)
+	image = np.expand_dims(image, axis=0)
 
 
-@app.route('/', methods=['GET'])
-def index():
-    # Main page
-    return render_template('index.html')
+	# return the processed image
+	return image
+
+@app.route("/predict", methods=["POST"])
+def predict():
+	# initialize the data dictionary that will be returned from the
+	# view
+    data = {"success": False}
+
+	# ensure an image was properly uploaded to our endpoint
+    if flask.request.method == "POST":
+        if flask.request.files.get("image"):
+			# read the image in PIL format
+            image = flask.request.files["image"].read()
+            image = Image.open(io.BytesIO(image))
+
+			# preprocess the image and prepare it for classification
+            image = prepare_image(image, target=(50, 50))
+
+            preds = model.predict(image)
+            pred = np.argmax(preds,axis = 1)
+            str1 = 'Malaria Parasite Present'
+            str2 = 'Normal'
+            if pred[0] == 0:
+               return str1
+            else:
+               return str2
+
+	# return the data dictionary as a JSON response
+    return flask.jsonify(pred)
 
 
-@app.route('/predict', methods=['GET', 'POST'])
-def upload():
-    if request.method == 'POST':
-        # Get the file from post request
-        f = request.files['file']
+# if this is the main thread of execution first load the model and
+# then start the server
+if __name__ == "__main__":
+    print(("* Loading Keras model and Flask starting server..."
+		"please wait until server has fully started"))
+    
+    app.debug = True
+    app.run(host='0.0.0.0')
 
-        # Save the file to ./uploads
-        basepath = os.path.dirname(__file__)
-        file_path = os.path.join(
-            basepath, 'uploads', secure_filename(f.filename))
-        f.save(file_path)
 
-        # Make prediction
-        pred = model_predict(file_path, model)
-        os.remove(file_path)#removes file from the server after prediction has been returned
 
-        
-        str1 = 'Malaria Parasite Present'
-        str2 = 'Normal'
-        if pred[0] == 0:
-            return str1
-        else:
-            return str2
-    return None
-
-    #this section is used by gunicorn to serve the app on Heroku
-if __name__ == '__main__':
-
-        app.run(host='0.0.0.0')
-    #uncomment this section to serve the app locally with gevent at:  http://localhost:5000
-    # Serve the app with gevent 
-        #http_server = WSGIServer(('', 5000), app)
-        #http_server.serve_forever()
